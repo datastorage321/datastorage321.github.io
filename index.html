@@ -94,153 +94,380 @@
 
         // Show QR modal for creds if not present in localStorage
         function ensureCredsWithQR(onReady) {
-            if (localStorage.getItem('creds')) {
-                onReady();
-                return;
-            }
+    if (localStorage.getItem('creds')) {
+        onReady();
+        return;
+    }
 
-            // Create modal
-            const modal = document.createElement('div');
-            modal.id = 'qr-creds-modal';
-            modal.style.position = 'fixed';
-            modal.style.top = '0';
-            modal.style.left = '0';
-            modal.style.width = '100vw';
-            modal.style.height = '100vh';
-            modal.style.background = 'rgba(0,0,0,0.35)';
-            modal.style.display = 'flex';
-            modal.style.alignItems = 'center';
-            modal.style.justifyContent = 'center';
-            modal.style.zIndex = '99999';
+    // Create modal with enhanced styling
+    const modal = document.createElement('div');
+    modal.id = 'qr-creds-modal';
+    modal.style.cssText = `
+        position: fixed;
+        top: 0;
+        left: 0;
+        width: 100vw;
+        height: 100vh;
+        background: rgba(0, 0, 0, 0.6);
+        backdrop-filter: blur(8px);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        z-index: 99999;
+        opacity: 0;
+        transition: opacity 0.3s ease;
+        font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+    `;
 
-            const box = document.createElement('div');
-            box.style.background = '#fff';
-            box.style.padding = '2.5em 2em 2em 2em';
-            box.style.borderRadius = '12px';
-            box.style.boxShadow = '0 4px 32px rgba(0,0,0,0.13)';
-            box.style.minWidth = '340px';
-            box.style.textAlign = 'center';
+    const box = document.createElement('div');
+    box.style.cssText = `
+        background: linear-gradient(135deg, #ffffff 0%, #f8fafc 100%);
+        padding: 2.5em 2em;
+        border-radius: 20px;
+        box-shadow: 0 20px 40px rgba(0, 0, 0, 0.15), 0 0 0 1px rgba(255, 255, 255, 0.1);
+        min-width: 380px;
+        max-width: 90vw;
+        text-align: center;
+        transform: scale(0.9) translateY(20px);
+        transition: transform 0.3s ease;
+        position: relative;
+        overflow: hidden;
+    `;
 
-            const title = document.createElement('h2');
-            title.textContent = 'Scan or Upload QR for Credentials';
-            title.style.marginBottom = '1em';
-            title.style.fontWeight = '600';
-            title.style.fontSize = '1.3em';
+    // Add subtle animated background pattern
+    const bgPattern = document.createElement('div');
+    bgPattern.style.cssText = `
+        position: absolute;
+        top: 0;
+        left: 0;
+        right: 0;
+        bottom: 0;
+        opacity: 0.03;
+        background-image: 
+            radial-gradient(circle at 25px 25px, #4f46e5 2px, transparent 2px),
+            radial-gradient(circle at 75px 75px, #06b6d4 2px, transparent 2px);
+        background-size: 100px 100px;
+        pointer-events: none;
+    `;
 
-            const errorMsg = document.createElement('div');
-            errorMsg.style.color = '#c00';
-            errorMsg.style.fontSize = '0.95em';
-            errorMsg.style.margin = '0.5em 0 0.5em 0';
-            errorMsg.style.display = 'none';
+    const title = document.createElement('h2');
+    title.textContent = 'Scan QR Code for Credentials';
+    title.style.cssText = `
+        margin: 0 0 0.5em 0;
+        font-weight: 700;
+        font-size: 1.5em;
+        background: linear-gradient(135deg, #1e293b, #475569);
+        -webkit-background-clip: text;
+        -webkit-text-fill-color: transparent;
+        background-clip: text;
+        color: #1e293b;
+    `;
 
-            // QR scanner container
-            const qrContainer = document.createElement('div');
-            qrContainer.id = 'qr-reader';
-            qrContainer.style.margin = '1em auto';
-            qrContainer.style.width = '260px';
-            qrContainer.style.height = '260px';
+    const subtitle = document.createElement('p');
+    subtitle.textContent = 'Use your camera or upload an image to authenticate';
+    subtitle.style.cssText = `
+        margin: 0 0 1.5em 0;
+        color: #64748b;
+        font-size: 0.95em;
+        line-height: 1.4;
+    `;
 
-            // Buttons
-            const webcamBtn = document.createElement('button');
-            webcamBtn.textContent = 'Scan with Webcam';
-            webcamBtn.className = 'btn primary';
-            webcamBtn.style.margin = '0.5em';
+    const errorMsg = document.createElement('div');
+    errorMsg.style.cssText = `
+        color: #dc2626;
+        background: #fef2f2;
+        border: 1px solid #fecaca;
+        border-radius: 8px;
+        padding: 0.75em 1em;
+        margin: 1em 0;
+        font-size: 0.9em;
+        display: none;
+        animation: shake 0.5s ease-in-out;
+    `;
 
-            const uploadBtn = document.createElement('button');
-            uploadBtn.textContent = 'Upload QR Image';
-            uploadBtn.className = 'btn secondary';
-            uploadBtn.style.margin = '0.5em';
+    // Add shake animation for errors
+    const style = document.createElement('style');
+    style.textContent = `
+        @keyframes shake {
+            0%, 100% { transform: translateX(0); }
+            25% { transform: translateX(-5px); }
+            75% { transform: translateX(5px); }
+        }
+        @keyframes pulse {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.7; }
+        }
+        .scanning-indicator {
+            animation: pulse 2s infinite;
+        }
+    `;
+    document.head.appendChild(style);
 
-            const fileInput = document.createElement('input');
-            fileInput.type = 'file';
-            fileInput.accept = 'image/*';
-            fileInput.style.display = 'none';
+    // QR scanner container with improved styling
+    const qrContainer = document.createElement('div');
+    qrContainer.id = 'qr-reader';
+    qrContainer.style.cssText = `
+        margin: 1.5em auto;
+        width: 280px;
+        height: 280px;
+        border-radius: 16px;
+        overflow: hidden;
+        box-shadow: 0 8px 20px rgba(0, 0, 0, 0.1);
+        border: 3px solid #e2e8f0;
+        background: #f8fafc;
+        position: relative;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+    `;
 
-            let html5QrCode = null;
-            let scanning = false;
+    // Placeholder content for QR container
+    const qrPlaceholder = document.createElement('div');
+    qrPlaceholder.style.cssText = `
+        color: #94a3b8;
+        font-size: 0.9em;
+        text-align: center;
+        padding: 2em;
+        line-height: 1.5;
+    `;
+    qrPlaceholder.innerHTML = `
+        <div style="font-size: 3em; margin-bottom: 0.5em;">📷</div>
+        <div>Camera will appear here</div>
+    `;
+    qrContainer.appendChild(qrPlaceholder);
 
-            function handleDecoded(decodedText) {
-                try {
-                    const credsObj = JSON.parse(decodedText);
-                    localStorage.setItem('creds', JSON.stringify(credsObj));
+    // Enhanced buttons
+    const buttonContainer = document.createElement('div');
+    buttonContainer.style.cssText = `
+        display: flex;
+        gap: 1em;
+        justify-content: center;
+        flex-wrap: wrap;
+        margin-top: 1.5em;
+    `;
+
+    const webcamBtn = document.createElement('button');
+    webcamBtn.innerHTML = `
+        <span style="margin-right: 0.5em;">📹</span>
+        Scan with Camera
+    `;
+    webcamBtn.style.cssText = `
+        background: linear-gradient(135deg, #4f46e5, #7c3aed);
+        color: white;
+        border: none;
+        padding: 0.875em 1.5em;
+        border-radius: 12px;
+        font-size: 0.95em;
+        font-weight: 600;
+        cursor: pointer;
+        transition: all 0.2s ease;
+        box-shadow: 0 4px 12px rgba(79, 70, 229, 0.3);
+        min-width: 140px;
+    `;
+
+    const uploadBtn = document.createElement('button');
+    uploadBtn.innerHTML = `
+        <span style="margin-right: 0.5em;">📁</span>
+        Upload Image
+    `;
+    uploadBtn.style.cssText = `
+        background: white;
+        color: #475569;
+        border: 2px solid #e2e8f0;
+        padding: 0.875em 1.5em;
+        border-radius: 12px;
+        font-size: 0.95em;
+        font-weight: 600;
+        cursor: pointer;
+        transition: all 0.2s ease;
+        min-width: 140px;
+    `;
+
+    // Add hover effects
+    webcamBtn.onmouseenter = () => {
+        webcamBtn.style.transform = 'translateY(-2px)';
+        webcamBtn.style.boxShadow = '0 6px 16px rgba(79, 70, 229, 0.4)';
+    };
+    webcamBtn.onmouseleave = () => {
+        webcamBtn.style.transform = 'translateY(0)';
+        webcamBtn.style.boxShadow = '0 4px 12px rgba(79, 70, 229, 0.3)';
+    };
+
+    uploadBtn.onmouseenter = () => {
+        uploadBtn.style.transform = 'translateY(-2px)';
+        uploadBtn.style.borderColor = '#cbd5e1';
+        uploadBtn.style.boxShadow = '0 4px 12px rgba(0, 0, 0, 0.1)';
+    };
+    uploadBtn.onmouseleave = () => {
+        uploadBtn.style.transform = 'translateY(0)';
+        uploadBtn.style.borderColor = '#e2e8f0';
+        uploadBtn.style.boxShadow = 'none';
+    };
+
+    const fileInput = document.createElement('input');
+    fileInput.type = 'file';
+    fileInput.accept = 'image/*';
+    fileInput.style.display = 'none';
+
+    // Status indicator
+    const statusIndicator = document.createElement('div');
+    statusIndicator.style.cssText = `
+        margin-top: 1em;
+        padding: 0.5em 1em;
+        border-radius: 20px;
+        font-size: 0.85em;
+        font-weight: 500;
+        display: none;
+    `;
+
+    let html5QrCode = null;
+    let scanning = false;
+
+    function showStatus(message, type = 'info') {
+        statusIndicator.textContent = message;
+        statusIndicator.style.display = 'block';
+        
+        if (type === 'scanning') {
+            statusIndicator.style.cssText += `
+                background: #dbeafe;
+                color: #1e40af;
+                display: block;
+            `;
+            statusIndicator.classList.add('scanning-indicator');
+        } else if (type === 'success') {
+            statusIndicator.style.cssText += `
+                background: #dcfce7;
+                color: #166534;
+                display: block;
+            `;
+            statusIndicator.classList.remove('scanning-indicator');
+        }
+    }
+
+    function hideStatus() {
+        statusIndicator.style.display = 'none';
+        statusIndicator.classList.remove('scanning-indicator');
+    }
+
+    function handleDecoded(decodedText) {
+        try {
+            const credsObj = JSON.parse(decodedText);
+            showStatus('✅ Credentials verified successfully!', 'success');
+            
+            setTimeout(() => {
+                localStorage.setItem('creds', JSON.stringify(credsObj));
+                modal.style.opacity = '0';
+                box.style.transform = 'scale(0.9) translateY(20px)';
+                
+                setTimeout(() => {
                     document.body.removeChild(modal);
                     onReady();
-                } catch (e) {
-                    errorMsg.textContent = 'Invalid QR: not a valid JSON string.';
-                    errorMsg.style.display = 'block';
-                }
-            }
-
-            webcamBtn.onclick = () => {
-                errorMsg.style.display = 'none';
-                if (html5QrCode) {
-                    html5QrCode.stop().then(() => {
-                        html5QrCode.clear();
-                        startWebcam();
-                    });
-                } else {
-                    startWebcam();
-                }
-            };
-
-            function startWebcam() {
-                qrContainer.innerHTML = '';
-                html5QrCode = new Html5Qrcode('qr-reader');
-                scanning = true;
-                html5QrCode.start(
-                    { facingMode: 'environment' },
-                    { fps: 10, qrbox: { width: 220, height: 220 } },
-                    (decodedText) => {
-                        if (scanning) {
-                            scanning = false;
-                            html5QrCode.stop().then(() => html5QrCode.clear());
-                            handleDecoded(decodedText);
-                        }
-                    },
-                    (errorMessage) => {
-                        // ignore scan errors
-                    }
-                ).catch((err) => {
-                    errorMsg.textContent = 'Camera error: ' + err;
-                    errorMsg.style.display = 'block';
-                });
-            }
-
-            uploadBtn.onclick = () => {
-                errorMsg.style.display = 'none';
-                fileInput.value = '';
-                fileInput.click();
-            };
-
-            fileInput.onchange = (e) => {
-                if (!e.target.files.length) return;
-                const imageFile = e.target.files[0];
-                if (html5QrCode) {
-                    html5QrCode.clear();
-                } else {
-                    html5QrCode = new Html5Qrcode('qr-reader');
-                }
-                scanning = false;
-                html5QrCode.scanFile(imageFile, true)
-                    .then(decodedText => {
-                        handleDecoded(decodedText);
-                    })
-                    .catch(err => {
-                        errorMsg.textContent = 'Could not read QR from image.';
-                        errorMsg.style.display = 'block';
-                    });
-            };
-
-            box.appendChild(title);
-            box.appendChild(errorMsg);
-            box.appendChild(webcamBtn);
-            box.appendChild(uploadBtn);
-            box.appendChild(fileInput);
-            box.appendChild(qrContainer);
-            modal.appendChild(box);
-            document.body.appendChild(modal);
+                }, 300);
+            }, 800);
+        } catch (e) {
+            errorMsg.textContent = '❌ Invalid QR code: Please ensure it contains valid credential data.';
+            errorMsg.style.display = 'block';
+            hideStatus();
         }
+    }
 
+    webcamBtn.onclick = () => {
+        errorMsg.style.display = 'none';
+        hideStatus();
+        
+        if (html5QrCode) {
+            html5QrCode.stop().then(() => {
+                html5QrCode.clear();
+                startWebcam();
+            });
+        } else {
+            startWebcam();
+        }
+    };
+
+    function startWebcam() {
+        qrContainer.innerHTML = '';
+        showStatus('📷 Starting camera...', 'scanning');
+        
+        html5QrCode = new Html5Qrcode('qr-reader');
+        scanning = true;
+        
+        html5QrCode.start(
+            { facingMode: 'environment' },
+            { fps: 10, qrbox: { width: 240, height: 240 } },
+            (decodedText) => {
+                if (scanning) {
+                    scanning = false;
+                    html5QrCode.stop().then(() => html5QrCode.clear());
+                    handleDecoded(decodedText);
+                }
+            },
+            (errorMessage) => {
+                // Ignore scan errors - they're expected during scanning
+            }
+        ).then(() => {
+            showStatus('🔍 Point camera at QR code', 'scanning');
+        }).catch((err) => {
+            errorMsg.textContent = '❌ Camera access denied or unavailable. Please check permissions.';
+            errorMsg.style.display = 'block';
+            hideStatus();
+            
+            // Restore placeholder
+            qrContainer.appendChild(qrPlaceholder);
+        });
+    }
+
+    uploadBtn.onclick = () => {
+        errorMsg.style.display = 'none';
+        hideStatus();
+        fileInput.value = '';
+        fileInput.click();
+    };
+
+    fileInput.onchange = (e) => {
+        if (!e.target.files.length) return;
+        
+        const imageFile = e.target.files[0];
+        showStatus('🔍 Processing image...', 'scanning');
+        
+        if (html5QrCode) {
+            html5QrCode.clear();
+        } else {
+            html5QrCode = new Html5Qrcode('qr-reader');
+        }
+        
+        scanning = false;
+        html5QrCode.scanFile(imageFile, true)
+            .then(decodedText => {
+                handleDecoded(decodedText);
+            })
+            .catch(err => {
+                errorMsg.textContent = '❌ No QR code found in image. Please try a clearer image.';
+                errorMsg.style.display = 'block';
+                hideStatus();
+            });
+    };
+
+    // Assembly
+    box.appendChild(bgPattern);
+    box.appendChild(title);
+    box.appendChild(subtitle);
+    box.appendChild(qrContainer);
+    box.appendChild(errorMsg);
+    box.appendChild(buttonContainer);
+    buttonContainer.appendChild(webcamBtn);
+    buttonContainer.appendChild(uploadBtn);
+    box.appendChild(fileInput);
+    box.appendChild(statusIndicator);
+    modal.appendChild(box);
+    document.body.appendChild(modal);
+
+    // Animate in
+    requestAnimationFrame(() => {
+        modal.style.opacity = '1';
+        box.style.transform = 'scale(1) translateY(0)';
+    });
+}
         // Load credentials from localStorage
         function getCreds() {
             const credsStr = localStorage.getItem('creds');
