@@ -71,6 +71,21 @@
         .scanning-indicator {
             animation: pulse 2s infinite;
         }
+        .image-modal-overlay {
+            backdrop-filter: blur(4px);
+        }
+        .image-modal-nav-button {
+            backdrop-filter: blur(8px);
+            background-color: rgba(0, 0, 0, 0.6);
+            border: 2px solid rgba(255, 255, 255, 0.3);
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.4);
+        }
+        .image-modal-thumbnail {
+            transition: all 0.15s ease;
+        }
+        .image-modal-thumbnail:hover {
+            transform: scale(1.02);
+        }
     </style>
 </head>
 
@@ -131,8 +146,10 @@
                                         :key="index"
                                         :src="image" 
                                         :alt="`Image ${index + 1}`" 
-                                        class="w-16 h-16 object-cover rounded border border-gray-200">
-                                    <div v-if="post.images.length > 4" class="ml-2 text-xs text-gray-500 font-semibold">
+                                        class="w-16 h-16 object-cover rounded border border-gray-200 cursor-pointer hover:opacity-80 transition-opacity"
+                                        @click="openImageModal(post.images, index)">
+                                    <div v-if="post.images.length > 4" class="ml-2 text-xs text-gray-500 font-semibold cursor-pointer hover:text-gray-700 transition-colors"
+                                         @click="openImageModal(post.images, 4)">
                                         +{{ post.images.length - 4 }} more
                                     </div>
                                 </div>
@@ -172,6 +189,14 @@
                     </tbody>
                 </table>
             </div>
+
+            <!-- Image Modal -->
+            <image-modal 
+                v-if="showImageModal" 
+                :images="modalImages"
+                :current-index="modalCurrentIndex"
+                @close="closeImageModal">
+            </image-modal>
 
             <!-- Post Modal -->
             <post-modal 
@@ -326,6 +351,196 @@
                             <button @click="uploadImage" class="bg-gray-200 hover:bg-gray-300 text-gray-700 px-6 py-2 rounded font-semibold">
                                 📁 Upload Image
                             </button>
+                        </div>
+                    </div>
+                </div>
+            `
+        };
+
+        // Image Modal Component
+        const ImageModal = {
+            props: ['images', 'currentIndex'],
+            emits: ['close'],
+            setup(props, { emit }) {
+                const currentImageIndex = ref(props.currentIndex || 0);
+                const isTransitioning = ref(false);
+                let touchStartX = null;
+                let touchStartY = null;
+                
+                const totalImages = computed(() => props.images?.length || 0);
+                
+                const currentImage = computed(() => {
+                    return props.images?.[currentImageIndex.value] || null;
+                });
+                
+                const goToPrevious = () => {
+                    if (isTransitioning.value) return;
+                    if (currentImageIndex.value > 0) {
+                        isTransitioning.value = true;
+                        currentImageIndex.value--;
+                        setTimeout(() => isTransitioning.value = false, 300);
+                    }
+                };
+                
+                const goToNext = () => {
+                    if (isTransitioning.value) return;
+                    if (currentImageIndex.value < totalImages.value - 1) {
+                        isTransitioning.value = true;
+                        currentImageIndex.value++;
+                        setTimeout(() => isTransitioning.value = false, 300);
+                    }
+                };
+                
+                const handleTouchStart = (e) => {
+                    touchStartX = e.touches[0].clientX;
+                    touchStartY = e.touches[0].clientY;
+                };
+                
+                const handleTouchMove = (e) => {
+                    // Prevent scrolling while swiping
+                    e.preventDefault();
+                };
+                
+                const handleTouchEnd = (e) => {
+                    if (!touchStartX || !touchStartY) return;
+                    
+                    const touchEndX = e.changedTouches[0].clientX;
+                    const touchEndY = e.changedTouches[0].clientY;
+                    
+                    const deltaX = touchStartX - touchEndX;
+                    const deltaY = touchStartY - touchEndY;
+                    
+                    const minSwipeDistance = 50;
+                    
+                    // Only respond to horizontal swipes
+                    if (Math.abs(deltaX) > Math.abs(deltaY) && Math.abs(deltaX) > minSwipeDistance) {
+                        if (deltaX > 0) {
+                            // Swiped left, go to next image
+                            goToNext();
+                        } else {
+                            // Swiped right, go to previous image
+                            goToPrevious();
+                        }
+                    }
+                    
+                    touchStartX = null;
+                    touchStartY = null;
+                };
+                
+                const handleKeydown = (e) => {
+                    switch (e.key) {
+                        case 'Escape':
+                            emit('close');
+                            break;
+                        case 'ArrowLeft':
+                            goToPrevious();
+                            break;
+                        case 'ArrowRight':
+                            goToNext();
+                            break;
+                    }
+                };
+                
+                const closeModal = () => {
+                    stopKeydownListener();
+                    emit('close');
+                };
+                
+                // Watch for prop changes
+                Vue.watch(() => props.currentIndex, (newIndex) => {
+                    if (newIndex !== undefined && newIndex !== null) {
+                        currentImageIndex.value = newIndex;
+                    }
+                });
+                
+                let keydownHandler = null;
+                
+                onMounted(() => {
+                    keydownHandler = handleKeydown;
+                    document.addEventListener('keydown', keydownHandler);
+                });
+                
+                // Return cleanup function so Vue can call it when component unmounts
+                const stopKeydownListener = () => {
+                    if (keydownHandler) {
+                        document.removeEventListener('keydown', keydownHandler);
+                        keydownHandler = null;
+                    }
+                };
+                
+                return {
+                    currentImageIndex,
+                    totalImages,
+                    currentImage,
+                    isTransitioning,
+                    goToPrevious,
+                    goToNext,
+                    handleTouchStart,
+                    handleTouchMove,
+                    handleTouchEnd,
+                    closeModal,
+                    stopKeydownListener
+                };
+            },
+            template: `
+                <div class="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-90 image-modal-overlay" @click.self="closeModal">
+                    <div class="relative max-w-4xl max-h-full mx-4">
+                        <!-- Close button -->
+                        <button @click="closeModal" class="absolute top-4 right-4 z-10 text-white hover:text-gray-300 text-3xl font-bold image-modal-nav-button rounded-full w-12 h-12 flex items-center justify-center">
+                            ×
+                        </button>
+                        
+                        <!-- Image container -->
+                        <div class="relative bg-black rounded-lg overflow-hidden" 
+                             @touchstart="handleTouchStart"
+                             @touchmove="handleTouchMove" 
+                             @touchend="handleTouchEnd"
+                             style="touch-action: none;">
+                            
+                            <img v-if="currentImage" 
+                                 :src="currentImage" 
+                                 :alt="'Image ' + (currentImageIndex + 1)"
+                                 class="max-w-full max-h-[80vh] object-contain mx-auto block"
+                                 :class="{ 'transition-opacity duration-300': isTransitioning }"
+                                 @dragstart.prevent>
+                            
+                            <!-- Navigation arrows -->
+                            <button v-if="currentImageIndex > 0" 
+                                    @click="goToPrevious"
+                                    class="absolute left-4 top-1/2 transform -translate-y-1/2 text-white hover:text-gray-300 text-3xl font-bold image-modal-nav-button rounded-full w-12 h-12 flex items-center justify-center">
+                                ‹
+                            </button>
+                            
+                            <button v-if="currentImageIndex < totalImages - 1" 
+                                    @click="goToNext"
+                                    class="absolute right-4 top-1/2 transform -translate-y-1/2 text-white hover:text-gray-300 text-3xl font-bold image-modal-nav-button rounded-full w-12 h-12 flex items-center justify-center">
+                                ›
+                            </button>
+                        </div>
+                        
+                        <!-- Image counter and thumbnails -->
+                        <div class="mt-4 text-center">
+                            <div class="text-white text-sm mb-2">
+                                {{ currentImageIndex + 1 }} / {{ totalImages }}
+                            </div>
+                            
+                            <!-- Thumbnail navigation -->
+                            <div v-if="totalImages > 1" class="flex justify-center gap-2 max-w-full overflow-x-auto pb-2">
+                                <button v-for="(image, index) in images" 
+                                        :key="index"
+                                        @click="currentImageIndex = index"
+                                        class="flex-shrink-0 w-12 h-12 rounded border-2 overflow-hidden image-modal-thumbnail"
+                                        :class="index === currentImageIndex ? 'border-blue-500' : 'border-gray-500'">
+                                    <img :src="image" 
+                                         :alt="'Thumbnail ' + (index + 1)"
+                                         class="w-full h-full object-cover">
+                                </button>
+                            </div>
+                        </div>
+                        
+                        <!-- Swipe indicator -->
+                        <div class="mt-2 text-center text-gray-400 text-xs">
+                            {{ totalImages > 1 ? 'Swipe or use arrow keys to navigate' : '' }}
                         </div>
                     </div>
                 </div>
@@ -520,7 +735,8 @@
         createApp({
             components: {
                 QrModal,
-                PostModal
+                PostModal,
+                ImageModal
             },
             setup() {
                 const showQrModal = ref(!localStorage.getItem('creds'));
@@ -531,6 +747,11 @@
                 const pageSize = ref(10);
                 const totalPosts = ref(0);
                 const supabaseClient = ref(null);
+                
+                // Image modal state
+                const showImageModal = ref(false);
+                const modalImages = ref([]);
+                const modalCurrentIndex = ref(0);
 
                 const maxPage = computed(() => Math.max(1, Math.ceil(totalPosts.value / pageSize.value)));
 
@@ -590,6 +811,18 @@
                 const closeModal = () => {
                     showModal.value = false;
                     editingPost.value = null;
+                };
+
+                const openImageModal = (images, startIndex = 0) => {
+                    modalImages.value = images;
+                    modalCurrentIndex.value = startIndex;
+                    showImageModal.value = true;
+                };
+
+                const closeImageModal = () => {
+                    showImageModal.value = false;
+                    modalImages.value = [];
+                    modalCurrentIndex.value = 0;
                 };
 
                 const handleSavePost = async (postData) => {
@@ -802,9 +1035,14 @@
                     posts,
                     currentPage,
                     maxPage,
+                    showImageModal,
+                    modalImages,
+                    modalCurrentIndex,
                     handleCredentialsLoaded,
                     openModal,
                     closeModal,
+                    openImageModal,
+                    closeImageModal,
                     handleSavePost,
                     editPost,
                     deletePost,
