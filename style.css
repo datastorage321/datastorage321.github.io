@@ -65,3 +65,69 @@
 .image-modal-thumbnail:hover {
     transform: scale(1.02);
 }
+
+  @media (max-width: 767px) {
+            /* Hide the table header, as we'll use data-labels instead */
+            #app table thead {
+                display: none;
+            }
+
+            /* Make the table, body, rows, and cells behave like blocks */
+            #app table, 
+            #app table tbody, 
+            #app table tr, 
+            #app table td {
+                display: block;
+                width: 100%;
+            }
+
+            /* Style each row as a card */
+            #app table tr {
+                margin-bottom: 1rem;
+                border: 1px solid #e2e8f0; /* gray-200 */
+                border-radius: 0.5rem; /* rounded-lg */
+                overflow: hidden;
+            }
+
+            #app table tr:last-child {
+                border-bottom: 1px solid #e2e8f0;
+            }
+
+            /* Style each cell */
+            #app table td {
+                text-align: right; /* Align cell content to the right */
+                padding-left: 50%; /* Create space for the label on the left */
+                position: relative;
+                border: none;
+            }
+
+            /* Create the label using the data-label attribute */
+            #app table td::before {
+                content: attr(data-label); /* Use the value from the data-label attribute */
+                position: absolute;
+                left: 0;
+                width: 45%;
+                padding-left: 1rem;
+                font-weight: 600; /* font-semibold */
+                text-align: left;
+                white-space: nowrap;
+            }
+            
+            /* Specific adjustments for certain cells */
+            #app table td[data-label="Image"] .flex,
+            #app table td[data-label="Actions"] .flex {
+                justify-content: flex-end; /* Align flex content to the right */
+            }
+
+            /* Adjust the pagination row for mobile */
+            #app .pagination-row {
+                border: none;
+            }
+            #app .pagination-row td {
+                text-align: center;
+                padding-left: 1rem;
+            }
+            #app .pagination-row td::before {
+                display: none; /* Hide label for pagination */
+            }
+        }
