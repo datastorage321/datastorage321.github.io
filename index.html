@@ -45,74 +45,74 @@
             </header>
 
             <!-- Posts Table -->
-            <div class="overflow-x-auto bg-white rounded-lg shadow mb-8">
+            <div class="overflow-x-auto bg-white rounded-lg shadow-lg mb-8">
                 <table class="min-w-full divide-y divide-gray-200">
-                    <thead class="bg-gray-100">
+                    <thead class="bg-gray-50">
                         <tr>
-                            <th class="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">ID</th>
-                            <th class="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Image</th>
-                            <th class="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Post Description</th>
-                            <th class="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Status</th>
-                            <th class="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Actions</th>
+                            <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">ID</th>
+                            <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Image</th>
+                            <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Post Description</th>
+                            <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Status</th>
+                            <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Actions</th>
                         </tr>
                     </thead>
                     <tbody class="bg-white divide-y divide-gray-200">
                         <!-- Empty State -->
                         <tr v-if="posts.length === 0">
-                            <td colspan="5" class="empty-state">
+                            <td colspan="5" class="px-6 py-4 whitespace-nowrap text-sm text-gray-500 text-center">
                                 <h3 class="text-lg font-semibold">No posts yet</h3>
                                 <p>Click "Add New Post" to get started</p>
                             </td>
                         </tr>
 
                         <!-- Posts -->
-                        <tr v-for="post in posts" :key="post.id">
-                            <td class="px-4 py-2">{{ post.id }}</td>
-                            <td class="px-4 py-2 post-images-cell">
-                                <div v-if="post.images && post.images.length > 0" class="flex flex-wrap gap-1 items-center">
-                                    <img 
-                                        v-for="(image, index) in post.images.slice(0, 4)" 
-                                        :key="index"
-                                        :src="image" 
-                                        :alt="`Image ${index + 1}`" 
-                                        class="w-16 h-16 object-cover rounded border border-gray-200 cursor-pointer hover:opacity-80 transition-opacity"
-                                        @click="openImageModal(post.images, index)">
-                                    <div v-if="post.images.length > 4" class="ml-2 text-xs text-gray-500 font-semibold cursor-pointer hover:text-gray-700 transition-colors"
-                                         @click="openImageModal(post.images, 4)">
-                                        +{{ post.images.length - 4 }} more
+                        <tr v-for="(post, index) in posts" :key="post.id" :class="index % 2 === 0 ? 'bg-white' : 'bg-gray-50'">
+                            <td class="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">{{ post.id }}</td>
+                            <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                                <div v-if="post.images && post.images.length > 0" class="flex items-center">
+                                    <div class="flex -space-x-3">
+                                        <img v-for="(image, index) in post.images.slice(0, 3)"
+                                             :key="index"
+                                             :src="image"
+                                             :alt="`Image ${index + 1}`"
+                                             class="h-12 w-12 rounded-full object-cover border-2 border-white ring-1 ring-gray-200 cursor-pointer hover:z-50 transform hover:scale-105 transition-transform"
+                                             @click="openImageModal(post.images, index)">
+                                    </div>
+                                    <div v-if="post.images.length > 3"
+                                         class="flex items-center justify-center h-12 w-12 rounded-full bg-gray-100 border-2 border-white ring-1 ring-gray-200 text-sm font-medium text-gray-600 cursor-pointer -ml-3 z-10 hover:bg-gray-200"
+                                         @click="openImageModal(post.images, 3)">
+                                        +{{ post.images.length - 3 }}
                                     </div>
                                 </div>
                                 <span v-else class="text-gray-400">No images</span>
                             </td>
-                            <td class="px-4 py-2 post-description" :title="post.description">{{ post.description }}</td>
-                            <td class="px-4 py-2">
-                                <span :class="`status-badge ${post.status}`">{{ post.status }}</span>
+                            <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500 truncate max-w-xs" :title="post.description">{{ post.description }}</td>
+                            <td class="px-6 py-4 whitespace-nowrap">
+                                <span :class="`px-2 inline-flex text-xs leading-5 font-semibold rounded-full ${post.status === 'approved' ? 'bg-green-100 text-green-800' : (post.status === 'pending' ? 'bg-yellow-100 text-yellow-800' : 'bg-red-100 text-red-800')}`">
+                                    {{ post.status }}
+                                </span>
                             </td>
-                            <td class="px-4 py-2 actions">
-                                <div class="flex gap-2">
-                                    <button @click="editPost(post)" class="inline-flex items-center gap-1 px-3 py-1 rounded bg-blue-500 hover:bg-blue-600 text-white text-xs font-semibold shadow transition" title="Edit">
-                                        <svg xmlns='http://www.w3.org/2000/svg' class='h-4 w-4' fill='none' viewBox='0 0 24 24' stroke='currentColor'><path stroke-linecap='round' stroke-linejoin='round' stroke-width='2' d='M15.232 5.232l3.536 3.536M9 13l6.536-6.536a2 2 0 112.828 2.828L11.828 15.828a2 2 0 01-2.828 0L5 11.828a2 2 0 010-2.828L9 13z' /></svg>
-                                        Edit
-                                    </button>
-                                    <button @click="toggleStatus(post)" :class="post.status === 'approved' ? 'bg-yellow-400 hover:bg-yellow-500 text-gray-900' : 'bg-green-500 hover:bg-green-600 text-white'" class="inline-flex items-center gap-1 px-3 py-1 rounded text-xs font-semibold shadow transition" :title="post.status === 'approved' ? 'Unapprove' : 'Approve'">
-                                        <svg v-if="post.status === 'approved'" xmlns='http://www.w3.org/2000/svg' class='h-4 w-4' fill='none' viewBox='0 0 24 24' stroke='currentColor'><path stroke-linecap='round' stroke-linejoin='round' stroke-width='2' d='M6 18L18 6M6 6l12 12' /></svg>
-                                        <svg v-else xmlns='http://www.w3.org/2000/svg' class='h-4 w-4' fill='none' viewBox='0 0 24 24' stroke='currentColor'><path stroke-linecap='round' stroke-linejoin='round' stroke-width='2' d='M5 13l4 4L19 7' /></svg>
+                            <td class="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
+                                <div class="flex items-center space-x-2">
+                                    <button @click="editPost(post)" class="text-indigo-600 hover:text-indigo-900">Edit</button>
+                                    <button @click="toggleStatus(post)" :class="post.status === 'approved' ? 'text-yellow-600 hover:text-yellow-900' : 'text-green-600 hover:text-green-900'">
                                         {{ post.status === 'approved' ? 'Unapprove' : 'Approve' }}
                                     </button>
-                                    <button @click="deletePost(post.id)" class="inline-flex items-center gap-1 px-3 py-1 rounded bg-red-500 hover:bg-red-600 text-white text-xs font-semibold shadow transition" title="Delete">
-                                        <svg xmlns='http://www.w3.org/2000/svg' class='h-4 w-4' fill='none' viewBox='0 0 24 24' stroke='currentColor'><path stroke-linecap='round' stroke-linejoin='round' stroke-width='2' d='M6 18L18 6M6 6l12 12' /></svg>
-                                        Delete
-                                    </button>
+                                    <button @click="deletePost(post.id)" class="text-red-600 hover:text-red-900">Delete</button>
                                 </div>
                             </td>
                         </tr>
 
                         <!-- Pagination -->
                         <tr>
-                            <td colspan="5" class="py-2 text-center">
-                                <button @click="prevPage" :disabled="currentPage === 1" class="btn small">Prev</button>
+                            <td colspan="5" class="px-6 py-4 whitespace-nowrap text-sm text-gray-500 text-center">
+                                <button @click="prevPage" :disabled="currentPage === 1" class="relative inline-flex items-center px-4 py-2 border border-gray-300 text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50 disabled:opacity-50">
+                                    Previous
+                                </button>
                                 <span class="mx-2">Page {{ currentPage }} of {{ maxPage }}</span>
-                                <button @click="nextPage" :disabled="currentPage === maxPage" class="btn small">Next</button>
+                                <button @click="nextPage" :disabled="currentPage === maxPage" class="ml-3 relative inline-flex items-center px-4 py-2 border border-gray-300 text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50 disabled:opacity-50">
+                                    Next
+                                </button>
                             </td>
                         </tr>
                     </tbody>
