@@ -36,14 +36,6 @@
                 <h1 class="text-3xl font-bold mb-2 sm:mb-0">Instagram Post Organizer</h1>
                 <div class="flex gap-2">
                     <button @click="openModal" class="btn primary">Add New Post</button>
-                    <button @click="exportPosts" class="btn secondary">Export Posts</button>
-                    <button @click="$refs.importFile.click()" class="btn secondary">Import Posts</button>
-                    <input 
-                        ref="importFile" 
-                        type="file" 
-                        accept=".json" 
-                        @change="importPosts" 
-                        style="display: none">
                 </div>
             </header>
 

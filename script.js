@@ -724,65 +724,7 @@ createApp({
             }
         };
 
-        const exportPosts = async () => {
-            if (!supabaseClient.value) return;
-
-            const { data, error } = await supabaseClient.value
-                .from('posts')
-                .select('*')
-                .order('id', { ascending: true });
-
-            if (error) {
-                alert('Failed to export posts from Supabase.');
-                return;
-            }
-
-            const dataStr = JSON.stringify(data, null, 2);
-            const dataBlob = new Blob([dataStr], { type: 'application/json' });
-            const url = URL.createObjectURL(dataBlob);
-            const link = document.createElement('a');
-            link.href = url;
-            link.download = 'instagram-posts.json';
-            link.click();
-            URL.revokeObjectURL(url);
-        };
-
-        const importPosts = async (event) => {
-            const file = event.target.files[0];
-            if (!file || !supabaseClient.value) return;
-
-            const reader = new FileReader();
-            reader.onload = async (e) => {
-                try {
-                    const importedPosts = JSON.parse(e.target.result);
-                    if (Array.isArray(importedPosts)) {
-                        const cleanPosts = importedPosts.map(p => ({
-                            description: p.description,
-                            status: p.status,
-                            images: p.images || [],
-                            created_at: new Date().toISOString(),
-                            updated_at: new Date().toISOString()
-                        }));
-
-                        const { error } = await supabaseClient.value
-                            .from('posts')
-                            .insert(cleanPosts);
-
-                        if (error) {
-                            alert('Failed to import posts to Supabase.');
-                            return;
-                        }
-
-                        await loadPosts();
-                        alert('Posts imported successfully!');
-                    }
-                } catch (error) {
-                    alert('Error importing posts. Please check the file format.');
-                }
-            };
-            reader.readAsText(file);
-            event.target.value = ''; // Reset input
-        };
+        
 
         // Initialize app if credentials exist
         onMounted(() => {
@@ -837,9 +779,7 @@ createApp({
             deletePost,
             toggleStatus,
             prevPage,
-            nextPage,
-            exportPosts,
-            importPosts
+            nextPage
         };
     }
 }).mount('#app');
